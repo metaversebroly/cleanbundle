@@ -1,70 +1,119 @@
-# Getting Started with Create React App
+# 🧪 CleanBundle
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+> Automated bundle health checker for Solana token launches
 
-## Available Scripts
+**Stop getting flagged. Launch with confidence.**
 
-In the project directory, you can run:
+[![Status](https://img.shields.io/badge/status-MVP%20in%20progress-yellow)](https://github.com/metaversebroly/cleanbundle)
+[![Built with](https://img.shields.io/badge/built%20with-React%20%7C%20Solana-purple)](https://github.com/metaversebroly/cleanbundle)
+[![License](https://img.shields.io/badge/license-MIT-blue)](https://github.com/metaversebroly/cleanbundle)
 
-### `npm start`
+## 🎯 The Problem
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+When bundling wallets for token launches on Solana, suspicious patterns get you flagged instantly by on-chain analysis tools. Your launch dies before it starts.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+**Common red flags that kill launches:**
+- ❌ All wallets funded from the same source
+- ❌ Perfect round amounts (0.5 SOL, 1.0 SOL, 2.0 SOL...)
+- ❌ All wallets created on the same day
+- ❌ Zero transaction history on bundled wallets
+- ❌ Detectable on-chain relationships between wallets
 
-### `npm test`
+Currently, devs check these patterns **manually**. It's tedious, error-prone, and easy to miss critical issues.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## ✨ The Solution
 
-### `npm run build`
+CleanBundle automatically analyzes your wallet bundle **before launch** and provides:
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+- 🔍 **Funding Pattern Analysis** - Detects suspicious funding sources and amount patterns
+- ⚡ **Relationship Detection** - Identifies risky on-chain connections between wallets
+- 📊 **Health Score System** - Clear rating: 🟢 Clean (90-100%) / 🟡 Medium (60-89%) / 🔴 Risky (0-59%)
+- 💡 **Actionable Recommendations** - Specific steps to improve your bundle before launch
+- 📈 **Comparative Analysis** - Learn from patterns in successful vs flagged bundles
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+Think of it as **pre-flight checks for your token launch.**
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## 🚀 Development Status
 
-### `npm run eject`
+**🏗️ Week 1/4 - MVP in Active Development**
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+### Shipped ✅
+- [x] Project architecture & foundation
+- [x] Multi-wallet input interface
+- [x] Solana Web3.js integration
+- [x] Core UI/UX design system
+- [x] Open source repository
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### In Progress 🔨
+- [ ] Wallet transaction data fetching (Solana RPC)
+- [ ] Funding pattern detection algorithm
+- [ ] Red flag identification engine
+- [ ] Bundle health scoring system
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+### Coming Soon 📅
+- [ ] Multi-wallet relationship graph analysis
+- [ ] Detailed recommendations engine
+- [ ] Historical comparison with known flagged bundles
+- [ ] PDF export & reporting features
+- [ ] Public API access
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+## 🛠️ Tech Stack
 
-## Learn More
+Built with modern, reliable technology:
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+- **Frontend:** React 18 + TailwindCSS 3
+- **Blockchain:** @solana/web3.js
+- **Data Source:** Solana RPC (public mainnet endpoint)
+- **Deployment:** Vercel (Week 4)
+- **Analytics:** In-house algorithms (no third-party dependencies)
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+**Fully open source.** No black boxes. Every check is transparent and auditable.
 
-### Code Splitting
+## 💪 Why This Project Exists
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+Built by a Solana dev who understands the launch process from experience.
 
-### Analyzing the Bundle Size
+After seeing too many solid projects fail due to preventable bundle issues, I built the tool I wish existed.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+**This is real utility. Not hype.**
 
-### Making a Progressive Web App
+Open source. Built in public. Feedback-driven development.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+## 📊 Roadmap
 
-### Advanced Configuration
+**Week 1:** Foundation + UI ✅ **(You are here)**  
+**Week 2:** Analysis Engine + Pattern Detection  
+**Week 3:** Scoring System + Advanced Features  
+**Week 4:** Polish + Deploy + Public Launch
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+**Post-Launch:** API access, advanced features, community-driven improvements
 
-### Deployment
+## 🎯 Target Users
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+- **Token launchers** preparing bundles for fair launches
+- **Dev teams** wanting to validate their wallet setup
+- **Launch consultants** checking client bundles before go-live
+- **Researchers** analyzing bundle patterns across the Solana ecosystem
 
-### `npm run build` fails to minify
+## 📬 Follow Development
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+- **Twitter:** [@metaversebroly](https://twitter.com/metaversebroly) - Daily build updates
+- **Issues:** Open an issue for feature requests or bug reports
+- **Discussions:** Share your launch experience and bundle strategies
+
+**Launching ~February 2026** | **MVP in 4 weeks**
+
+## ⭐ Support This Project
+
+If you're building on Solana or planning a token launch:
+
+- **Star this repo** to follow development progress
+- **Share with other devs** who could benefit
+- **Open issues** with feature requests or feedback
+- **Contribute** if you want to help build (open to PRs after Week 2)
+
+---
+
+**Built with determination. One commit at a time.** 💪
+
+*This project represents a comeback story. Lost everything. Rebuilding through code and real utility.*
