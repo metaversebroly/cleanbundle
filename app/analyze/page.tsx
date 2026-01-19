@@ -8,6 +8,8 @@ import { getSolanaConnection } from '@/lib/solana/connection'
 import { getScore, getBadge } from '@/lib/utils/scoring'
 import { validateAddressList } from '@/lib/utils/validation'
 import { parseError, retry } from '@/lib/utils/errors'
+import { detectFundingSource } from '@/lib/analysis/fundingDetector'
+import { recommendRole } from '@/lib/analysis/roleRecommender'
 import { Button } from '@/components/ui/Button'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { ProgressBar } from '@/components/ui/ProgressBar'
@@ -15,6 +17,8 @@ import { ToastContainer } from '@/components/ui/ToastContainer'
 import { DropdownButton } from '@/components/ui/DropdownButton'
 import { StatsCard } from '@/components/wallet/StatsCard'
 import { WalletTableRow } from '@/components/wallet/WalletTableRow'
+import { ExpandedWalletDetails } from '@/components/wallet/ExpandedWalletDetails'
+import { InsightsCard } from '@/components/wallet/InsightsCard'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { Navigation } from '@/components/layout/Navigation'
 import { useToast } from '@/hooks/useToast'
@@ -25,6 +29,7 @@ export default function AnalyzePage() {
   const [wallets, setWallets] = useState<Wallet[]>([])
   const [analyzing, setAnalyzing] = useState(false)
   const [progress, setProgress] = useState(0)
+  const [expandedWalletId, setExpandedWalletId] = useState<number | null>(null)
   const toast = useToast()
 
   const analyzeWallets = async () => {
@@ -83,7 +88,10 @@ export default function AnalyzePage() {
         const balance = await connection.getBalance(pubKey)
         const solBalance = balance / 1000000000
 
-        updatedWallets.push({
+        // Detect funding source and recommend role
+        const funding = await detectFundingSource(connection, wallet.address, signatures)
+        
+        const walletWithData: Wallet = {
           ...wallet,
           data: {
             totalTransactions: signatures.length,
@@ -91,9 +99,15 @@ export default function AnalyzePage() {
             ageInDays,
             balance: solBalance.toFixed(4)
           },
+          funding,
           loading: false,
           error: null
-        })
+        }
+        
+        const role = recommendRole(walletWithData, funding.source)
+        walletWithData.role = role
+
+        updatedWallets.push(walletWithData)
       } catch (error) {
         const errorDetails = parseError(error)
         updatedWallets.push({
@@ -147,20 +161,27 @@ export default function AnalyzePage() {
         const balance = await connection.getBalance(pubKey)
         const solBalance = balance / 1000000000
 
+        // Detect funding source and recommend role
+        const funding = await detectFundingSource(connection, wallet.address, signatures)
+        
+        const walletWithData: Wallet = {
+          ...wallet,
+          data: {
+            totalTransactions: signatures.length,
+            recentTransactions: recentTxs,
+            ageInDays,
+            balance: solBalance.toFixed(4)
+          },
+          funding,
+          loading: false,
+          error: null
+        }
+        
+        const role = recommendRole(walletWithData, funding.source)
+        walletWithData.role = role
+
         setWallets(prev => prev.map(w =>
-          w.id === walletId
-            ? {
-                ...w,
-                data: {
-                  totalTransactions: signatures.length,
-                  recentTransactions: recentTxs,
-                  ageInDays,
-                  balance: solBalance.toFixed(4)
-                },
-                loading: false,
-                error: null
-              }
-            : w
+          w.id === walletId ? walletWithData : w
         ))
 
         toast.success(`Wallet ${wallet.address.slice(0, 4)}...${wallet.address.slice(-4)} retried successfully`)
@@ -296,6 +317,9 @@ export default function AnalyzePage() {
                 </GlassCard>
               )}
 
+              {/* Overall Insights Card */}
+              {!analyzing && <InsightsCard wallets={wallets} />}
+
               {/* Action Buttons */}
               <GlassCard className="p-6">
                 <div className="flex flex-wrap justify-between items-center gap-4">
@@ -376,6 +400,8 @@ export default function AnalyzePage() {
                         <th className="px-4 py-4 text-left text-sm font-semibold text-gray-300">#</th>
                         <th className="px-4 py-4 text-left text-sm font-semibold text-gray-300">Address</th>
                         <th className="px-4 py-4 text-left text-sm font-semibold text-gray-300">Score</th>
+                        <th className="px-4 py-4 text-left text-sm font-semibold text-gray-300">Potential Role for Next Launch</th>
+                        <th className="px-4 py-4 text-left text-sm font-semibold text-gray-300">Funding</th>
                         <th className="px-4 py-4 text-left text-sm font-semibold text-gray-300">TXs</th>
                         <th className="px-4 py-4 text-left text-sm font-semibold text-gray-300">Recent</th>
                         <th className="px-4 py-4 text-left text-sm font-semibold text-gray-300">Age</th>
@@ -384,18 +410,31 @@ export default function AnalyzePage() {
                     </thead>
                     <tbody className="divide-y divide-white/5">
                       {wallets.map((wallet, index) => (
-                        <motion.tr
-                          key={wallet.id}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: index * 0.05, duration: 0.3 }}
-                          className="hover:bg-white/5 transition-all duration-200 group"
-                        >
-                          <WalletTableRow 
-                            wallet={wallet} 
-                            onRetry={retryWallet}
+                        <React.Fragment key={wallet.id}>
+                          <motion.tr
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: index * 0.05, duration: 0.3 }}
+                            className={`hover:bg-white/5 transition-all duration-200 group cursor-pointer ${
+                              expandedWalletId === wallet.id ? 'bg-white/5' : ''
+                            }`}
+                            onClick={() => {
+                              if (wallet.data && wallet.role && wallet.funding) {
+                                setExpandedWalletId(expandedWalletId === wallet.id ? null : wallet.id)
+                              }
+                            }}
+                          >
+                            <WalletTableRow 
+                              wallet={wallet} 
+                              onRetry={retryWallet}
+                              isExpanded={expandedWalletId === wallet.id}
+                            />
+                          </motion.tr>
+                          <ExpandedWalletDetails 
+                            wallet={wallet}
+                            isExpanded={expandedWalletId === wallet.id}
                           />
-                        </motion.tr>
+                        </React.Fragment>
                       ))}
                     </tbody>
                   </table>

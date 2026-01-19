@@ -10,6 +10,10 @@ export const exportToCSV = (wallets: Wallet[]): void => {
     'Address',
     'Score',
     'Status',
+    'Role',
+    'Role Confidence',
+    'Funding Source',
+    'Funding Confidence',
     'Total Transactions',
     'Recent (7d)',
     'Age (days)',
@@ -22,10 +26,19 @@ export const exportToCSV = (wallets: Wallet[]): void => {
     const badge = getBadge(score);
     const status = score >= 80 ? 'Clean' : score >= 50 ? 'Medium' : 'Risky';
 
+    // Format role name
+    const roleName = wallet.role?.role 
+      ? wallet.role.role.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+      : 'N/A';
+
     return [
       wallet.address,
       score.toString(),
       status,
+      roleName,
+      wallet.role?.confidence?.toString() || 'N/A',
+      wallet.funding?.sourceName || 'N/A',
+      wallet.funding?.confidence?.toString() || 'N/A',
       wallet.data?.totalTransactions?.toString() || '0',
       wallet.data?.recentTransactions?.toString() || '0',
       wallet.data?.ageInDays?.toString() || '0',
@@ -63,16 +76,19 @@ export const copyToClipboard = async (
 
   if (format === 'markdown') {
     // Markdown table format
-    const headers = '| Address | Score | Status | TXs | Recent | Age | Balance |';
-    const separator = '|---------|-------|--------|-----|--------|-----|---------|';
+    const headers = '| Address | Score | Status | Role | Funding | TXs | Recent | Age | Balance |';
+    const separator = '|---------|-------|--------|------|---------|-----|--------|-----|---------|';
     
     const rows = wallets.map((wallet) => {
       const score = getScore(wallet);
       const badge = getBadge(score);
       const status = score >= 80 ? 'Clean' : score >= 50 ? 'Medium' : 'Risky';
       const shortAddress = `${wallet.address.slice(0, 4)}...${wallet.address.slice(-4)}`;
+      const roleName = wallet.role?.role 
+        ? wallet.role.role.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+        : 'N/A';
 
-      return `| ${shortAddress} | ${badge.emoji} ${score} | ${status} | ${wallet.data?.totalTransactions || 0} | ${wallet.data?.recentTransactions || 0} | ${wallet.data?.ageInDays || 0}d | ${wallet.data?.balance || 0} SOL |`;
+      return `| ${shortAddress} | ${badge.emoji} ${score} | ${status} | ${roleName} | ${wallet.funding?.sourceName || 'N/A'} | ${wallet.data?.totalTransactions || 0} | ${wallet.data?.recentTransactions || 0} | ${wallet.data?.ageInDays || 0}d | ${wallet.data?.balance || 0} SOL |`;
     });
 
     content = [headers, separator, ...rows].join('\n');
@@ -81,6 +97,8 @@ export const copyToClipboard = async (
     const data = wallets.map((wallet) => ({
       address: wallet.address,
       score: getScore(wallet),
+      role: wallet.role,
+      funding: wallet.funding,
       data: wallet.data,
       error: wallet.error,
     }));

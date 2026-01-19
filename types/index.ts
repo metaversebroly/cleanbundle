@@ -11,6 +11,8 @@ export interface Wallet {
   data: WalletData | null;
   loading: boolean;
   error: string | null;
+  funding?: FundingAnalysis;
+  role?: RoleRecommendation;
 }
 
 export interface ScoreBadge {
@@ -49,4 +51,31 @@ export interface ToastMessage {
 export interface ValidationResult {
   valid: string[];
   invalid: { address: string; reason: string }[];
+}
+
+// Funding Analysis types
+export interface FundingAnalysis {
+  source: string;
+  sourceName: string;
+  confidence: number;
+  evidence: string[];
+  details: any | null;
+}
+
+// Role Recommendation types
+export enum WalletRole {
+  DEV_WALLET = 'dev_wallet',
+  TOP_HOLDER = 'top_holder',
+  MARKET_MAKER = 'market_maker',
+  EARLY_SUPPORTER = 'early_supporter',
+  SNIPER = 'sniper',
+  UNKNOWN = 'unknown'
+}
+
+export interface RoleRecommendation {
+  role: WalletRole;
+  confidence: number;
+  score: number;
+  reasons: string[];
+  concerns: string[];
 }
