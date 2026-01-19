@@ -19,10 +19,12 @@ import { StatsCard } from '@/components/wallet/StatsCard'
 import { WalletTableRow } from '@/components/wallet/WalletTableRow'
 import { ExpandedWalletDetails } from '@/components/wallet/ExpandedWalletDetails'
 import { InsightsCard } from '@/components/wallet/InsightsCard'
+import { BubbleMap } from '@/components/wallet/BubbleMap'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { Navigation } from '@/components/layout/Navigation'
 import { useToast } from '@/hooks/useToast'
 import { exportToCSV, copyToClipboard } from '@/lib/utils/export'
+import { WalletConnection } from '@/lib/analysis/patternDetector'
 
 export default function AnalyzePage() {
   const [walletInput, setWalletInput] = useState('')
@@ -30,15 +32,17 @@ export default function AnalyzePage() {
   const [analyzing, setAnalyzing] = useState(false)
   const [progress, setProgress] = useState(0)
   const [expandedWalletId, setExpandedWalletId] = useState<number | null>(null)
+  const [patternConnections, setPatternConnections] = useState<WalletConnection[]>([])
   const toast = useToast()
 
   // Handle connected wallets detection
-  const handleConnectionsDetected = (connectedAddresses: Set<string>) => {
+  const handleConnectionsDetected = (connectedAddresses: Set<string>, connections: WalletConnection[]) => {
     console.log('📍 Updating wallets with connection info:', Array.from(connectedAddresses));
     setWallets(prev => prev.map(w => ({
       ...w,
       isConnected: connectedAddresses.has(w.address)
     })));
+    setPatternConnections(connections);
   }
 
   // Remove wallet from bundle
@@ -468,6 +472,27 @@ export default function AnalyzePage() {
                   </table>
                 </div>
               </GlassCard>
+
+              {/* Bubble Map Visualization */}
+              {!analyzing && wallets.length > 0 && (
+                <GlassCard className="p-6">
+                  <div className="mb-4">
+                    <h2 className="text-2xl font-semibold text-white mb-2">
+                      🎨 Bundle Visualization
+                    </h2>
+                    <p className="text-gray-400 text-sm">
+                      {patternConnections.length > 0 
+                        ? `${patternConnections.length} connection${patternConnections.length > 1 ? 's' : ''} detected. Click bubbles to remove wallets.`
+                        : 'Visual representation of your bundle. All wallets are independent!'}
+                    </p>
+                  </div>
+                  <BubbleMap 
+                    wallets={wallets}
+                    connections={patternConnections}
+                    onRemoveWallet={removeWallet}
+                  />
+                </GlassCard>
+              )}
             </div>
           )}
         </div>

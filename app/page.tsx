@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { motion, useScroll, useTransform } from 'framer-motion'
 import { Target, Sparkles, BarChart3, ArrowRight, Check } from 'lucide-react'
 import { useEffect, useState, useRef } from 'react'
+import { Navigation } from '@/components/layout/Navigation'
 
 export default function Home() {
   const { scrollY } = useScroll()
@@ -12,6 +13,8 @@ export default function Home() {
   
   return (
     <div className="min-h-screen bg-black text-white overflow-hidden">
+      {/* Navigation */}
+      <Navigation />
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
         {/* Animated Gradient Mesh Background */}

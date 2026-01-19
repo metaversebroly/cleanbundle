@@ -8,10 +8,11 @@ import { detectPatterns, PatternAnalysis } from '@/lib/analysis/patternDetector'
 import { PatternWarnings } from '@/components/wallet/PatternWarnings';
 import { getSolanaConnection } from '@/lib/solana/connection';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { WalletConnection } from '@/lib/analysis/patternDetector';
 
 interface InsightsCardProps {
   wallets: Wallet[];
-  onConnectionsDetected?: (connectedAddresses: Set<string>) => void;
+  onConnectionsDetected?: (connectedAddresses: Set<string>, connections: WalletConnection[]) => void;
 }
 
 export function InsightsCard({ wallets, onConnectionsDetected }: InsightsCardProps) {
@@ -78,17 +79,15 @@ export function InsightsCard({ wallets, onConnectionsDetected }: InsightsCardPro
         console.log('🚨 Analysis result:', analysis);
         setPatternAnalysis(analysis);
         
-        // ✅ Notify parent about connected wallet addresses
-        if (analysis.connections.length > 0 && onConnectionsDetected) {
+        // ✅ Notify parent about connected wallet addresses and connections
+        if (onConnectionsDetected) {
           const connectedAddresses = new Set<string>();
           analysis.connections.forEach(conn => {
             connectedAddresses.add(conn.from);
             connectedAddresses.add(conn.to);
           });
           console.log('🔗 Notifying parent of connected addresses:', Array.from(connectedAddresses));
-          onConnectionsDetected(connectedAddresses);
-        } else if (onConnectionsDetected) {
-          onConnectionsDetected(new Set());
+          onConnectionsDetected(connectedAddresses, analysis.connections);
         }
       } catch (error) {
         console.error('❌ [Pattern] Error analyzing patterns:', error);
