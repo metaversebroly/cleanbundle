@@ -4,15 +4,116 @@ import { Wallet, WalletRole } from '@/types';
 import { getScore } from '@/lib/utils/scoring';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { TrendingUp, Users, Shield, AlertTriangle, Award, Zap } from 'lucide-react';
+import { detectPatterns, PatternAnalysis } from '@/lib/analysis/patternDetector';
+import { PatternWarnings } from '@/components/wallet/PatternWarnings';
+import { getSolanaConnection } from '@/lib/solana/connection';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 interface InsightsCardProps {
   wallets: Wallet[];
+  onConnectionsDetected?: (connectedAddresses: Set<string>) => void;
 }
 
-export function InsightsCard({ wallets }: InsightsCardProps) {
-  const validWallets = wallets.filter(w => w.data && w.role && w.funding);
+export function InsightsCard({ wallets, onConnectionsDetected }: InsightsCardProps) {
+  console.log('\n🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨');
+  console.log('🚨 INSIGHTS CARD RENDERED!');
+  console.log(`🚨 Total wallets: ${wallets.length}`);
+  console.log('🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨\n');
   
-  if (validWallets.length === 0) return null;
+  wallets.forEach((w, i) => {
+    console.log(`Wallet ${i + 1}: ${w.address.slice(0, 8)}...`);
+    console.log(`  ✓ Has data? ${!!w.data}`);
+    console.log(`  ✓ Has role? ${!!w.role}`);
+    console.log(`  ✓ Has funding? ${!!w.funding}`);
+    if (w.data) {
+      console.log(`    - TXs: ${w.data.totalTransactions}, Age: ${w.data.ageInDays}d`);
+    }
+    if (w.role) {
+      console.log(`    - Role: ${w.role.role} (${w.role.confidence}%)`);
+    }
+    if (w.funding) {
+      console.log(`    - Funding: ${w.funding.source}`);
+    }
+  });
+  
+  const [patternAnalysis, setPatternAnalysis] = React.useState<PatternAnalysis | null>(null);
+  const [analyzingPatterns, setAnalyzingPatterns] = React.useState(false);
+  
+  // ✅ FIX: Only require data, not funding (pattern detection works without it!)
+  const validWallets = wallets.filter(w => w.data);
+  
+  console.log(`\n✅ Valid wallets count: ${validWallets.length}/${wallets.length}`);
+  
+  if (validWallets.length === 0) {
+    console.log('❌ NO VALID WALLETS - InsightsCard returning null!\n');
+    return null;
+  }
+  
+  console.log('✅ InsightsCard will render (valid wallets found)\n');
+  
+  // Run pattern detection
+  React.useEffect(() => {
+    console.log('\n🔥 useEffect TRIGGERED!');
+    console.log(`🔥 validWallets.length: ${validWallets.length}`);
+    console.log(`🔥 wallets.length: ${wallets.length}\n`);
+    
+    async function analyzePatterns() {
+      console.log('🚨 analyzePatterns() function called!');
+      
+      if (validWallets.length < 2) {
+        console.log(`❌ NOT ENOUGH VALID WALLETS: ${validWallets.length}/2 needed`);
+        console.log('⚠️ Skipping pattern detection\n');
+        return;
+      }
+      
+      console.log('✅ Enough valid wallets, proceeding...');
+      
+      setAnalyzingPatterns(true);
+      try {
+        console.log('🚨 ABOUT TO CALL detectPatterns()...');
+        const connection = getSolanaConnection();
+        // ✅ Pass ALL wallets, not just validWallets, to scan all combinations
+        const analysis = await detectPatterns(connection, wallets);
+        console.log('🚨 detectPatterns() RETURNED!');
+        console.log('🚨 Analysis result:', analysis);
+        setPatternAnalysis(analysis);
+        
+        // ✅ Notify parent about connected wallet addresses
+        if (analysis.connections.length > 0 && onConnectionsDetected) {
+          const connectedAddresses = new Set<string>();
+          analysis.connections.forEach(conn => {
+            connectedAddresses.add(conn.from);
+            connectedAddresses.add(conn.to);
+          });
+          console.log('🔗 Notifying parent of connected addresses:', Array.from(connectedAddresses));
+          onConnectionsDetected(connectedAddresses);
+        } else if (onConnectionsDetected) {
+          onConnectionsDetected(new Set());
+        }
+      } catch (error) {
+        console.error('❌ [Pattern] Error analyzing patterns:', error);
+        // Show error in UI
+        setPatternAnalysis({
+          warnings: [{
+            id: 'error',
+            severity: 'HIGH',
+            type: 'connection',
+            title: 'Pattern detection failed',
+            description: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            affectedWallets: [],
+            details: error
+          }],
+          connections: [],
+          fundingClusters: new Map(),
+          suspicionScore: 0
+        });
+      } finally {
+        setAnalyzingPatterns(false);
+      }
+    }
+    
+    analyzePatterns();
+  }, [wallets.map(w => w.address).join(',')]);
 
   // Calculate insights
   const avgScore = Math.round(
@@ -227,8 +328,29 @@ export function InsightsCard({ wallets }: InsightsCardProps) {
         </div>
       </div>
 
+      {/* Pattern Analysis Section */}
+      <div className="mt-6">
+        <div className="flex items-center gap-2 mb-4">
+          <AlertTriangle className="w-6 h-6 text-orange-400" />
+          <h2 className="text-xl font-semibold text-white">🕵️ Pattern Detection</h2>
+        </div>
+        
+        {analyzingPatterns ? (
+          <div className="bg-white/5 border border-white/10 rounded-lg p-8 text-center">
+            <LoadingSpinner size="md" />
+            <p className="text-gray-400 mt-3">Analyzing cross-wallet patterns...</p>
+            <p className="text-xs text-gray-500 mt-1">Checking funding sources, connections, timing, and amounts</p>
+          </div>
+        ) : patternAnalysis ? (
+          <PatternWarnings 
+            warnings={patternAnalysis.warnings}
+            connections={patternAnalysis.connections}
+          />
+        ) : null}
+      </div>
+
       {/* Recommendations */}
-      <div className="bg-gradient-to-r from-orange-500/10 to-pink-500/10 border border-orange-500/30 rounded-lg p-4">
+      <div className="bg-gradient-to-r from-orange-500/10 to-pink-500/10 border border-orange-500/30 rounded-lg p-4 mt-6">
         <h3 className="text-sm font-semibold text-white mb-3">💡 Key Recommendations</h3>
         <ul className="space-y-2">
           {recommendations.map((rec, idx) => (

@@ -5,18 +5,21 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Button } from '@/components/ui/Button';
 import { RoleBadge } from '@/components/wallet/RoleBadge';
 import { FundingBadge } from '@/components/wallet/FundingBadge';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, X } from 'lucide-react';
 
 interface WalletTableRowProps {
   wallet: Wallet;
   onRetry: (walletId: number) => void;
+  onRemove: (walletId: number) => void;
   isExpanded?: boolean;
 }
 
-export function WalletTableRow({ wallet, onRetry, isExpanded = false }: WalletTableRowProps) {
+export function WalletTableRow({ wallet, onRetry, onRemove, isExpanded = false }: WalletTableRowProps) {
   const score = getScore(wallet);
   const badge = getBadge(score);
   const canExpand = wallet.data && wallet.role && wallet.funding;
+  const hasWarnings = wallet.patternWarnings && wallet.patternWarnings.length > 0;
+  const isConnected = wallet.isConnected;
 
   return (
     <>
@@ -30,6 +33,12 @@ export function WalletTableRow({ wallet, onRetry, isExpanded = false }: WalletTa
             />
           )}
           <span>{wallet.id}</span>
+          {/* Connection Badge */}
+          {isConnected && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-500/20 text-red-300 border border-red-500/30">
+              🔗 Connected
+            </span>
+          )}
         </div>
       </td>
       <td className="px-4 py-4 font-mono text-xs text-purple-400 group-hover:text-purple-300 transition-colors">
@@ -93,6 +102,23 @@ export function WalletTableRow({ wallet, onRetry, isExpanded = false }: WalletTa
       </td>
       <td className="px-4 py-4 text-sm text-gray-300 group-hover:text-white transition-colors">
         {wallet.data ? `${wallet.data.balance} SOL` : '-'}
+      </td>
+      {/* Actions Column - Remove Button for Connected Wallets */}
+      <td className="px-4 py-4">
+        {isConnected && (
+          <Button
+            onClick={(e) => {
+              e.stopPropagation(); // Prevent row expansion
+              onRemove(wallet.id);
+            }}
+            variant="ghost"
+            size="sm"
+            className="text-red-400 hover:text-red-300 hover:bg-red-500/20 border border-red-500/30"
+          >
+            <X className="w-4 h-4 mr-1" />
+            Remove
+          </Button>
+        )}
       </td>
     </>
   );

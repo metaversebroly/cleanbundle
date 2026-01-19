@@ -2,7 +2,7 @@ import { Connection } from '@solana/web3.js';
 
 export const getSolanaConnection = () => {
   return new Connection(
-    'https://quiet-purple-bridge.solana-mainnet.quiknode.pro/3b4934557503f620e41bed833c53fc753d1917e4/',
+    'https://proportionate-restless-ensemble.solana-mainnet.quiknode.pro/b2f7a23eaa26d9511c1a33cd92fd9304bf6eac2e/',
     'confirmed'
   );
 };

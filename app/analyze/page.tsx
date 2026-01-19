@@ -32,6 +32,24 @@ export default function AnalyzePage() {
   const [expandedWalletId, setExpandedWalletId] = useState<number | null>(null)
   const toast = useToast()
 
+  // Handle connected wallets detection
+  const handleConnectionsDetected = (connectedAddresses: Set<string>) => {
+    console.log('📍 Updating wallets with connection info:', Array.from(connectedAddresses));
+    setWallets(prev => prev.map(w => ({
+      ...w,
+      isConnected: connectedAddresses.has(w.address)
+    })));
+  }
+
+  // Remove wallet from bundle
+  const removeWallet = (walletId: number) => {
+    setWallets(prev => prev.filter(w => w.id !== walletId))
+    toast.success('Wallet removed from bundle')
+    if (expandedWalletId === walletId) {
+      setExpandedWalletId(null)
+    }
+  }
+
   const analyzeWallets = async () => {
     const addresses = walletInput
       .split('\n')
@@ -40,6 +58,12 @@ export default function AnalyzePage() {
     
     if (addresses.length === 0) {
       toast.error('Please enter at least one wallet address')
+      return
+    }
+
+    // ✅ Limit to 10 wallets for performance
+    if (addresses.length > 10) {
+      toast.error(`Too many wallets! Maximum is 10 addresses (you entered ${addresses.length})`)
       return
     }
 
@@ -279,7 +303,7 @@ export default function AnalyzePage() {
               <textarea
                 value={walletInput}
                 onChange={(e) => setWalletInput(e.target.value)}
-                placeholder="7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU&#10;EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v&#10;Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB"
+                placeholder="Paste wallet addresses (one per line, max 10)&#10;&#10;Example:&#10;7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU&#10;EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v&#10;Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB"
                 className="w-full h-64 bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 font-mono text-sm resize-none transition-all"
               />
 
@@ -318,7 +342,7 @@ export default function AnalyzePage() {
               )}
 
               {/* Overall Insights Card */}
-              {!analyzing && <InsightsCard wallets={wallets} />}
+              {!analyzing && <InsightsCard wallets={wallets} onConnectionsDetected={handleConnectionsDetected} />}
 
               {/* Action Buttons */}
               <GlassCard className="p-6">
@@ -406,6 +430,7 @@ export default function AnalyzePage() {
                         <th className="px-4 py-4 text-left text-sm font-semibold text-gray-300">Recent</th>
                         <th className="px-4 py-4 text-left text-sm font-semibold text-gray-300">Age</th>
                         <th className="px-4 py-4 text-left text-sm font-semibold text-gray-300">Balance</th>
+                        <th className="px-4 py-4 text-left text-sm font-semibold text-gray-300">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
@@ -415,9 +440,11 @@ export default function AnalyzePage() {
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: index * 0.05, duration: 0.3 }}
-                            className={`hover:bg-white/5 transition-all duration-200 group cursor-pointer ${
-                              expandedWalletId === wallet.id ? 'bg-white/5' : ''
-                            }`}
+                            className={`transition-all duration-200 group cursor-pointer ${
+                              wallet.isConnected 
+                                ? 'bg-gradient-to-r from-red-500/20 to-orange-500/20 hover:from-red-500/30 hover:to-orange-500/30 border-l-4 border-red-500' 
+                                : 'hover:bg-white/5'
+                            } ${expandedWalletId === wallet.id ? 'bg-white/5' : ''}`}
                             onClick={() => {
                               if (wallet.data && wallet.role && wallet.funding) {
                                 setExpandedWalletId(expandedWalletId === wallet.id ? null : wallet.id)
@@ -427,6 +454,7 @@ export default function AnalyzePage() {
                             <WalletTableRow 
                               wallet={wallet} 
                               onRetry={retryWallet}
+                              onRemove={removeWallet}
                               isExpanded={expandedWalletId === wallet.id}
                             />
                           </motion.tr>

@@ -13,6 +13,8 @@ export interface Wallet {
   error: string | null;
   funding?: FundingAnalysis;
   role?: RoleRecommendation;
+  patternWarnings?: string[]; // IDs of warnings this wallet is involved in
+  isConnected?: boolean; // If wallet has connections to other bundle wallets
 }
 
 export interface ScoreBadge {
