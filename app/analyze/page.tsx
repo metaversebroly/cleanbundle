@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { PublicKey } from '@solana/web3.js'
-import Link from 'next/link'
+import { motion } from 'framer-motion'
 import { Wallet } from '@/types'
 import { getSolanaConnection } from '@/lib/solana/connection'
 import { getScore, getBadge } from '@/lib/utils/scoring'
@@ -15,6 +15,8 @@ import { ToastContainer } from '@/components/ui/ToastContainer'
 import { DropdownButton } from '@/components/ui/DropdownButton'
 import { StatsCard } from '@/components/wallet/StatsCard'
 import { WalletTableRow } from '@/components/wallet/WalletTableRow'
+import { GlassCard } from '@/components/ui/GlassCard'
+import { Navigation } from '@/components/layout/Navigation'
 import { useToast } from '@/hooks/useToast'
 import { exportToCSV, copyToClipboard } from '@/lib/utils/export'
 
@@ -32,7 +34,7 @@ export default function AnalyzePage() {
       .filter(line => line.length > 0)
     
     if (addresses.length === 0) {
-      alert('Please enter at least one wallet address')
+      toast.error('Please enter at least one wallet address')
       return
     }
 
@@ -73,7 +75,6 @@ export default function AnalyzePage() {
         
         const now = Math.floor(Date.now() / 1000)
         const firstTx = signatures.length > 0 ? signatures[signatures.length - 1].blockTime : null
-        const lastTx = signatures.length > 0 ? signatures[0].blockTime : null
         const ageInDays = firstTx ? Math.floor((now - firstTx) / 86400) : 0
         
         const sevenDaysAgo = now - (7 * 86400)
@@ -125,7 +126,6 @@ export default function AnalyzePage() {
     const wallet = wallets.find(w => w.id === walletId)
     if (!wallet) return
 
-    // Set wallet to loading
     setWallets(prev => prev.map(w => 
       w.id === walletId ? { ...w, loading: true, error: null } : w
     ))
@@ -208,170 +208,202 @@ export default function AnalyzePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 p-4 md:p-8">
+    <div className="min-h-screen bg-black text-white overflow-hidden">
+      {/* Navigation */}
+      <Navigation />
+
+      {/* Animated Gradient Mesh Background */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+        <div className="absolute top-0 right-1/4 w-96 h-96 bg-pink-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+        <div className="absolute bottom-0 left-1/2 w-96 h-96 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
+      </div>
+
+      {/* Grid Pattern Overlay */}
+      <div className="fixed inset-0 bg-[linear-gradient(rgba(255,255,255,.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.02)_1px,transparent_1px)] bg-[size:100px_100px] pointer-events-none"></div>
+
+      {/* Toast Container */}
       <ToastContainer toasts={toast.toasts} onRemove={toast.removeToast} />
-      <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-block mb-4 text-purple-400 hover:text-purple-300 transition-colors">
-            ← Back to Home
-          </Link>
-          <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-purple-400 to-pink-600 bg-clip-text text-transparent">
-            CleanBundle
-          </h1>
-          <p className="text-gray-300 text-lg">
-            Automated bundle health checker for Solana launches
-          </p>
-          <p className="text-gray-400 text-sm mt-2">
-            No more CSV exports • No more Python scripts • Just results
-          </p>
-        </div>
 
-        {wallets.length === 0 ? (
-          <div className="bg-gray-800/50 backdrop-blur-lg rounded-2xl shadow-2xl p-6 md:p-8 border border-purple-500/20">
-            <h2 className="text-2xl font-semibold mb-4 text-white">
-              Import Your Wallet Bundle
-            </h2>
-            <p className="text-gray-400 mb-6">
-              Paste wallet addresses (one per line). No limit.
+      {/* Main Content */}
+      <div className="relative z-10 pt-24 pb-16 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          {/* Page Header */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            className="text-center mb-12"
+          >
+            <h1 className="text-4xl md:text-6xl font-bold mb-4">
+              <span className="bg-gradient-to-r from-purple-400 to-pink-600 bg-clip-text text-transparent">
+                Analyze Your Bundle
+              </span>
+            </h1>
+            <p className="text-xl text-gray-400">
+              Professional wallet health check for Solana launches
             </p>
+          </motion.div>
 
-            <textarea
-              value={walletInput}
-              onChange={(e) => setWalletInput(e.target.value)}
-              placeholder="7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU&#10;EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v&#10;Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB"
-              className="w-full h-64 bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 font-mono text-sm resize-none"
-            />
-
-            <Button
-              onClick={analyzeWallets}
-              disabled={analyzing || !walletInput.trim()}
-              loading={analyzing}
-              variant="primary"
-              size="lg"
-              className="mt-6 w-full"
-            >
-              {analyzing ? (
-                <>
-                  <LoadingSpinner size="sm" />
-                  Analyzing... {progress}%
-                </>
-              ) : (
-                '🔍 Analyze Bundle'
-              )}
-            </Button>
-
-            <div className="mt-6 bg-purple-500/10 border border-purple-500/30 rounded-lg p-4">
-              <p className="text-sm text-gray-300">
-                <span className="font-semibold text-purple-400">Day 1 MVP:</span> Basic analysis. More features tomorrow!
+          {wallets.length === 0 ? (
+            /* Input Section */
+            <GlassCard className="p-8 md:p-12 max-w-4xl mx-auto" animate delay={0.2}>
+              <h2 className="text-2xl font-semibold mb-4 text-white">
+                Import Your Wallet Bundle
+              </h2>
+              <p className="text-gray-400 mb-6">
+                Paste wallet addresses (one per line). No limit.
               </p>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-6 animate-fade-in">
-            {/* Progress Bar */}
-            {analyzing && (
-              <div className="bg-gray-800/50 rounded-2xl p-6 border border-purple-500/20">
-                <ProgressBar progress={progress} />
-              </div>
-            )}
 
-            <div className="bg-gray-800/50 rounded-2xl p-6 border border-purple-500/20 hover:border-purple-500/40 transition-all">
-              <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
-                <h2 className="text-2xl font-semibold text-white">Results</h2>
-                <div className="flex gap-2">
-                  <Button
-                    onClick={handleExportCSV}
-                    variant="secondary"
-                    size="md"
-                  >
-                    📥 Export CSV
-                  </Button>
-                  <DropdownButton
-                    variant="secondary"
-                    size="md"
-                    options={[
-                      {
-                        label: 'Copy as Markdown',
-                        icon: '📋',
-                        onClick: handleCopyMarkdown,
-                      },
-                      {
-                        label: 'Copy as JSON',
-                        icon: '💾',
-                        onClick: handleCopyJSON,
-                      },
-                    ]}
-                  >
-                    📋 Copy Results
-                  </DropdownButton>
-                  <Button
-                    onClick={() => { setWallets([]); setWalletInput('') }}
-                    variant="ghost"
-                    size="md"
-                  >
-                    ← New Analysis
-                  </Button>
+              <textarea
+                value={walletInput}
+                onChange={(e) => setWalletInput(e.target.value)}
+                placeholder="7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU&#10;EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v&#10;Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB"
+                className="w-full h-64 bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 font-mono text-sm resize-none transition-all"
+              />
+
+              <Button
+                onClick={analyzeWallets}
+                disabled={analyzing || !walletInput.trim()}
+                loading={analyzing}
+                variant="primary"
+                size="lg"
+                className="mt-6 w-full"
+              >
+                {analyzing ? (
+                  <>
+                    <LoadingSpinner size="sm" />
+                    Analyzing... {progress}%
+                  </>
+                ) : (
+                  '🔍 Analyze Bundle'
+                )}
+              </Button>
+
+              <div className="mt-6 bg-purple-500/10 border border-purple-500/30 rounded-lg p-4">
+                <p className="text-sm text-gray-300">
+                  <span className="font-semibold text-purple-400">💎 Premium Analysis:</span> Get instant insights on transaction history, wallet age, and bundle health.
+                </p>
+              </div>
+            </GlassCard>
+          ) : (
+            /* Results Section */
+            <div className="space-y-6 animate-fade-in">
+              {/* Progress Bar */}
+              {analyzing && (
+                <GlassCard className="p-6">
+                  <ProgressBar progress={progress} />
+                </GlassCard>
+              )}
+
+              {/* Action Buttons */}
+              <GlassCard className="p-6">
+                <div className="flex flex-wrap justify-between items-center gap-4">
+                  <h2 className="text-2xl font-semibold text-white">Results</h2>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      onClick={handleExportCSV}
+                      variant="secondary"
+                      size="md"
+                    >
+                      📥 Export CSV
+                    </Button>
+                    <DropdownButton
+                      variant="secondary"
+                      size="md"
+                      options={[
+                        {
+                          label: 'Copy as Markdown',
+                          icon: '📋',
+                          onClick: handleCopyMarkdown,
+                        },
+                        {
+                          label: 'Copy as JSON',
+                          icon: '💾',
+                          onClick: handleCopyJSON,
+                        },
+                      ]}
+                    >
+                      📋 Copy Results
+                    </DropdownButton>
+                    <Button
+                      onClick={() => { setWallets([]); setWalletInput('') }}
+                      variant="ghost"
+                      size="md"
+                    >
+                      ← New Analysis
+                    </Button>
+                  </div>
                 </div>
-              </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                <StatsCard 
-                  label="Total" 
-                  value={wallets.length} 
-                  color="text-white"
-                />
-                <StatsCard 
-                  label="Clean" 
-                  value={wallets.filter(w => w.data && getScore(w) >= 80).length} 
-                  color="text-green-400"
-                />
-                <StatsCard 
-                  label="Medium" 
-                  value={wallets.filter(w => w.data && getScore(w) >= 50 && getScore(w) < 80).length} 
-                  color="text-yellow-400"
-                />
-                <StatsCard 
-                  label="Risky" 
-                  value={wallets.filter(w => w.data && getScore(w) < 50).length} 
-                  color="text-red-400"
-                />
-                <StatsCard 
-                  label="Errors" 
-                  value={wallets.filter(w => w.error).length} 
-                  color={wallets.filter(w => w.error).length > 0 ? 'text-red-400' : 'text-gray-500'}
-                  highlight={wallets.filter(w => w.error).length > 0}
-                />
-              </div>
-            </div>
+                {/* Stats Cards */}
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-6">
+                  <StatsCard 
+                    label="Total" 
+                    value={wallets.length} 
+                    color="text-white"
+                  />
+                  <StatsCard 
+                    label="Clean" 
+                    value={wallets.filter(w => w.data && getScore(w) >= 80).length} 
+                    color="text-green-400"
+                  />
+                  <StatsCard 
+                    label="Medium" 
+                    value={wallets.filter(w => w.data && getScore(w) >= 50 && getScore(w) < 80).length} 
+                    color="text-yellow-400"
+                  />
+                  <StatsCard 
+                    label="Risky" 
+                    value={wallets.filter(w => w.data && getScore(w) < 50).length} 
+                    color="text-red-400"
+                  />
+                  <StatsCard 
+                    label="Errors" 
+                    value={wallets.filter(w => w.error).length} 
+                    color={wallets.filter(w => w.error).length > 0 ? 'text-red-400' : 'text-gray-500'}
+                    highlight={wallets.filter(w => w.error).length > 0}
+                  />
+                </div>
+              </GlassCard>
 
-            <div className="bg-gray-800/50 rounded-2xl border border-purple-500/20 overflow-hidden hover:border-purple-500/40 transition-all">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-700/50">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-300">#</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-300">Address</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-300">Score</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-300">TXs</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-300">Recent</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-300">Age</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-300">Balance</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-700/50">
-                    {wallets.map((wallet) => (
-                      <WalletTableRow 
-                        key={wallet.id} 
-                        wallet={wallet} 
-                        onRetry={retryWallet}
-                      />
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              {/* Results Table */}
+              <GlassCard className="overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-white/5 border-b border-white/10">
+                      <tr>
+                        <th className="px-4 py-4 text-left text-sm font-semibold text-gray-300">#</th>
+                        <th className="px-4 py-4 text-left text-sm font-semibold text-gray-300">Address</th>
+                        <th className="px-4 py-4 text-left text-sm font-semibold text-gray-300">Score</th>
+                        <th className="px-4 py-4 text-left text-sm font-semibold text-gray-300">TXs</th>
+                        <th className="px-4 py-4 text-left text-sm font-semibold text-gray-300">Recent</th>
+                        <th className="px-4 py-4 text-left text-sm font-semibold text-gray-300">Age</th>
+                        <th className="px-4 py-4 text-left text-sm font-semibold text-gray-300">Balance</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {wallets.map((wallet, index) => (
+                        <motion.tr
+                          key={wallet.id}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.05, duration: 0.3 }}
+                          className="hover:bg-white/5 transition-all duration-200 group"
+                        >
+                          <WalletTableRow 
+                            wallet={wallet} 
+                            onRetry={retryWallet}
+                          />
+                        </motion.tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </GlassCard>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   )
