@@ -12,7 +12,11 @@ import { Button } from '@/components/ui/Button'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { ProgressBar } from '@/components/ui/ProgressBar'
 import { ToastContainer } from '@/components/ui/ToastContainer'
+import { DropdownButton } from '@/components/ui/DropdownButton'
+import { StatsCard } from '@/components/wallet/StatsCard'
+import { WalletTableRow } from '@/components/wallet/WalletTableRow'
 import { useToast } from '@/hooks/useToast'
+import { exportToCSV, copyToClipboard } from '@/lib/utils/export'
 
 export default function AnalyzePage() {
   const [walletInput, setWalletInput] = useState('')
@@ -176,6 +180,33 @@ export default function AnalyzePage() {
     }
   }
 
+  const handleExportCSV = () => {
+    try {
+      exportToCSV(wallets)
+      toast.success('✅ CSV exported successfully!')
+    } catch (error) {
+      toast.error('Failed to export CSV')
+    }
+  }
+
+  const handleCopyMarkdown = async () => {
+    try {
+      await copyToClipboard(wallets, 'markdown')
+      toast.success('✅ Copied as Markdown!')
+    } catch (error) {
+      toast.error('Failed to copy to clipboard')
+    }
+  }
+
+  const handleCopyJSON = async () => {
+    try {
+      await copyToClipboard(wallets, 'json')
+      toast.success('✅ Copied as JSON!')
+    } catch (error) {
+      toast.error('Failed to copy to clipboard')
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 p-4 md:p-8">
       <ToastContainer toasts={toast.toasts} onRemove={toast.removeToast} />
@@ -244,51 +275,76 @@ export default function AnalyzePage() {
               </div>
             )}
 
-            <div className="bg-gray-800/50 rounded-2xl p-6 border border-purple-500/20">
-              <div className="flex justify-between items-center mb-4">
+            <div className="bg-gray-800/50 rounded-2xl p-6 border border-purple-500/20 hover:border-purple-500/40 transition-all">
+              <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
                 <h2 className="text-2xl font-semibold text-white">Results</h2>
-                <Button
-                  onClick={() => { setWallets([]); setWalletInput('') }}
-                  variant="secondary"
-                  size="md"
-                >
-                  ← New Analysis
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handleExportCSV}
+                    variant="secondary"
+                    size="md"
+                  >
+                    📥 Export CSV
+                  </Button>
+                  <DropdownButton
+                    variant="secondary"
+                    size="md"
+                    options={[
+                      {
+                        label: 'Copy as Markdown',
+                        icon: '📋',
+                        onClick: handleCopyMarkdown,
+                      },
+                      {
+                        label: 'Copy as JSON',
+                        icon: '💾',
+                        onClick: handleCopyJSON,
+                      },
+                    ]}
+                  >
+                    📋 Copy Results
+                  </DropdownButton>
+                  <Button
+                    onClick={() => { setWallets([]); setWalletInput('') }}
+                    variant="ghost"
+                    size="md"
+                  >
+                    ← New Analysis
+                  </Button>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                <div className="bg-gray-700/30 rounded-lg p-4">
-                  <div className="text-gray-400 text-sm">Total</div>
-                  <div className="text-2xl font-bold text-white">{wallets.length}</div>
-                </div>
-                <div className="bg-gray-700/30 rounded-lg p-4">
-                  <div className="text-gray-400 text-sm">Clean</div>
-                  <div className="text-2xl font-bold text-green-400">
-                    {wallets.filter(w => w.data && getScore(w) >= 80).length}
-                  </div>
-                </div>
-                <div className="bg-gray-700/30 rounded-lg p-4">
-                  <div className="text-gray-400 text-sm">Medium</div>
-                  <div className="text-2xl font-bold text-yellow-400">
-                    {wallets.filter(w => w.data && getScore(w) >= 50 && getScore(w) < 80).length}
-                  </div>
-                </div>
-                <div className="bg-gray-700/30 rounded-lg p-4">
-                  <div className="text-gray-400 text-sm">Risky</div>
-                  <div className="text-2xl font-bold text-red-400">
-                    {wallets.filter(w => w.data && getScore(w) < 50).length}
-                  </div>
-                </div>
-                <div className={`bg-gray-700/30 rounded-lg p-4 ${wallets.filter(w => w.error).length > 0 ? 'ring-2 ring-red-500/50' : ''}`}>
-                  <div className="text-gray-400 text-sm">Errors</div>
-                  <div className={`text-2xl font-bold ${wallets.filter(w => w.error).length > 0 ? 'text-red-400' : 'text-gray-500'}`}>
-                    {wallets.filter(w => w.error).length}
-                  </div>
-                </div>
+                <StatsCard 
+                  label="Total" 
+                  value={wallets.length} 
+                  color="text-white"
+                />
+                <StatsCard 
+                  label="Clean" 
+                  value={wallets.filter(w => w.data && getScore(w) >= 80).length} 
+                  color="text-green-400"
+                />
+                <StatsCard 
+                  label="Medium" 
+                  value={wallets.filter(w => w.data && getScore(w) >= 50 && getScore(w) < 80).length} 
+                  color="text-yellow-400"
+                />
+                <StatsCard 
+                  label="Risky" 
+                  value={wallets.filter(w => w.data && getScore(w) < 50).length} 
+                  color="text-red-400"
+                />
+                <StatsCard 
+                  label="Errors" 
+                  value={wallets.filter(w => w.error).length} 
+                  color={wallets.filter(w => w.error).length > 0 ? 'text-red-400' : 'text-gray-500'}
+                  highlight={wallets.filter(w => w.error).length > 0}
+                />
               </div>
             </div>
 
-            <div className="bg-gray-800/50 rounded-2xl border border-purple-500/20 overflow-hidden">
+            <div className="bg-gray-800/50 rounded-2xl border border-purple-500/20 overflow-hidden hover:border-purple-500/40 transition-all">
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-gray-700/50">
@@ -303,59 +359,13 @@ export default function AnalyzePage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-700/50">
-                    {wallets.map((wallet) => {
-                      const score = getScore(wallet)
-                      const badge = getBadge(score)
-                      return (
-                        <tr key={wallet.id} className="hover:bg-gray-700/30 transition-colors">
-                          <td className="px-4 py-3 text-sm text-gray-400">{wallet.id}</td>
-                          <td className="px-4 py-3 font-mono text-xs text-purple-400">
-                            {wallet.address.slice(0, 4)}...{wallet.address.slice(-4)}
-                          </td>
-                          <td className="px-4 py-3">
-                            {wallet.loading ? (
-                              <div className="flex items-center gap-2">
-                                <LoadingSpinner size="sm" />
-                                <span className="text-gray-400 text-sm">Loading...</span>
-                              </div>
-                            ) : wallet.error ? (
-                              <div className="flex items-center gap-2">
-                                <span className="text-red-400 text-sm" title={wallet.error}>⚠️ Error</span>
-                                <Button
-                                  onClick={() => retryWallet(wallet.id)}
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-xs"
-                                >
-                                  🔄 Retry
-                                </Button>
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-2 animate-pop-in">
-                                <span>{badge.emoji}</span>
-                                <span className={`font-semibold ${badge.color}`}>{score}</span>
-                              </div>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-300">
-                            {wallet.data ? wallet.data.totalTransactions : '-'}
-                          </td>
-                          <td className="px-4 py-3 text-sm">
-                            {wallet.data ? (
-                              <span className={wallet.data.recentTransactions >= 3 ? 'text-green-400' : 'text-yellow-400'}>
-                                {wallet.data.recentTransactions}
-                              </span>
-                            ) : '-'}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-300">
-                            {wallet.data ? `${wallet.data.ageInDays}d` : '-'}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-300">
-                            {wallet.data ? `${wallet.data.balance} SOL` : '-'}
-                          </td>
-                        </tr>
-                      )
-                    })}
+                    {wallets.map((wallet) => (
+                      <WalletTableRow 
+                        key={wallet.id} 
+                        wallet={wallet} 
+                        onRetry={retryWallet}
+                      />
+                    ))}
                   </tbody>
                 </table>
               </div>
