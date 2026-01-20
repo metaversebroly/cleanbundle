@@ -45,8 +45,35 @@ export function InsightsCard({ wallets, onConnectionsDetected }: InsightsCardPro
   
   console.log(`\n✅ Valid wallets count: ${validWallets.length}/${wallets.length}`);
   
-  if (validWallets.length === 0) {
-    console.log('❌ NO VALID WALLETS - InsightsCard returning null!\n');
+  // ✅ NEW: Check if wallets are still loading
+  const hasLoadingWallets = wallets.some(w => w.loading);
+  const hasAnyWallets = wallets.length > 0;
+  
+  console.log(`⏳ Has loading wallets? ${hasLoadingWallets}`);
+  console.log(`📊 Has any wallets? ${hasAnyWallets}`);
+  
+  // ✅ NEW: If no wallets at all, return null
+  if (!hasAnyWallets) {
+    console.log('❌ NO WALLETS AT ALL - InsightsCard returning null!\n');
+    return null;
+  }
+  
+  // ✅ NEW: If wallets are still loading AND no valid wallets yet, show loading state
+  if (hasLoadingWallets && validWallets.length === 0) {
+    console.log('⏳ WALLETS STILL LOADING - Showing loading state...\n');
+    return (
+      <GlassCard className="p-6 mb-8">
+        <div className="flex items-center justify-center gap-3 text-gray-400 py-8">
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-500"></div>
+          <span>Loading wallet data for pattern analysis...</span>
+        </div>
+      </GlassCard>
+    );
+  }
+  
+  // ✅ NEW: Only return null if wallets finished loading but all failed
+  if (validWallets.length === 0 && !hasLoadingWallets) {
+    console.log('❌ NO VALID WALLETS (after loading finished) - InsightsCard returning null!\n');
     return null;
   }
   

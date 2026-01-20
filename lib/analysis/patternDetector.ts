@@ -367,8 +367,8 @@ async function detectCrossWalletTransfers(
     
     console.log(`\n📊 Total signatures fetched: ${allSignatures.length}\n`);
     
-    // 🎯 DEBUG: Check for specific test transaction
-    const TEST_TX = '5wjW8cWGFppoHDZTreRu48RZznBE3mnWatfQiDVjnrrZ2efJjo81Ci1EEnYF8Cmwi4y86jRPSnZc1o7sWnbn6fq';
+    // 🎯 DEBUG: Check for specific test transaction (CREATE ACCOUNT type)
+    const TEST_TX = '5HGB6PGohjqUQBBQDXEcPY7qii69DVdKZQmqtwWrL2fetrW3Nimeqt3NzLxyPEhD6RoNYtSsQb151R5FDidWaX1R';
     const testTxIndex = allSignatures.findIndex(sig => sig.signature === TEST_TX);
     if (testTxIndex !== -1) {
       console.log(`✅ TEST TX FOUND at position ${testTxIndex + 1}/${allSignatures.length}`);
@@ -423,7 +423,7 @@ async function detectCrossWalletTransfers(
     
     const REQUESTS_PER_SECOND = 15;
     const DELAY_BETWEEN_REQUESTS = Math.ceil(1000 / REQUESTS_PER_SECOND);
-    const MIN_SOL_AMOUNT = 0.01; // ✅ Ignore transfers < 0.01 SOL (spam)
+    const MIN_SOL_AMOUNT = 0.001; // ✅ Lowered to 0.001 to catch small legit transfers (e.g. 0.002 SOL)
     
     console.log(`⚡ Starting parse with ${DELAY_BETWEEN_REQUESTS}ms delay`);
     console.log(`🧹 Spam filter: Ignore transfers < ${MIN_SOL_AMOUNT} SOL\n`);
@@ -483,6 +483,66 @@ async function detectCrossWalletTransfers(
           console.log(`✅ TEST TX: Transaction data loaded`);
           console.log(`   Accounts in transaction: ${tx.transaction.message.accountKeys.length}`);
           console.log(`   Has system program: ${hasSystemTransfer}`);
+          console.log(`\n📋 ALL INSTRUCTIONS:`);
+          instructions.forEach((ix: any, idx: number) => {
+            console.log(`   Instruction ${idx}:`);
+            console.log(`     Type: ${ix.parsed?.type || 'Unknown'}`);
+            console.log(`     Program: ${ix.program || ix.programId?.toString() || 'Unknown'}`);
+            if (ix.parsed?.info) {
+              console.log(`     Info:`, JSON.stringify(ix.parsed.info, null, 2));
+            }
+          });
+        }
+        
+        // ✅ SPECIAL HANDLING: Check for CREATE ACCOUNT instructions
+        // These transfer SOL when creating accounts but may not show up in normal balance change detection
+        const createAccountIx = instructions.find((ix: any) => {
+          return ix.parsed?.type === 'createAccount' || ix.parsed?.type === 'createAccountWithSeed';
+        });
+        
+        if (createAccountIx && 'parsed' in createAccountIx && createAccountIx.parsed) {
+          const parsed = createAccountIx.parsed as any;
+          const source = parsed.info?.source;
+          const newAccount = parsed.info?.newAccount;
+          const lamports = parsed.info?.lamports || 0;
+          const amount = lamports / 1e9;
+          
+          console.log(`\n🔍 CREATE ACCOUNT INSTRUCTION DETECTED!`);
+          console.log(`   Source: ${source}`);
+          console.log(`   New Account: ${newAccount}`);
+          console.log(`   Amount: ${amount.toFixed(9)} SOL`);
+          console.log(`   Source in bundle? ${source ? bundleAddresses.has(source) : 'N/A'}`);
+          console.log(`   New account in bundle? ${newAccount ? bundleAddresses.has(newAccount) : 'N/A'}`);
+          
+          // Check if both accounts are in bundle
+          if (source && newAccount && bundleAddresses.has(source) && bundleAddresses.has(newAccount)) {
+            if (amount >= MIN_SOL_AMOUNT) {
+              const connectionKey = `${source}->${newAccount}-${sig.signature}`;
+              if (!seenConnections.has(connectionKey)) {
+                seenConnections.add(connectionKey);
+                
+                console.log(`\n🚨 ═══════════════════════════════════════════`);
+                console.log(`   CREATE ACCOUNT CONNECTION DETECTED!`);
+                console.log(`   From: ${source}`);
+                console.log(`   To: ${newAccount} (new account)`);
+                console.log(`   Amount: ${amount.toFixed(4)} SOL`);
+                console.log(`   TX: ${sig.signature}`);
+                console.log(`═══════════════════════════════════════════\n`);
+                
+                connections.push({
+                  from: source,
+                  to: newAccount,
+                  amount: amount,
+                  timestamp: sig.blockTime || 0,
+                  signature: sig.signature
+                });
+                
+                console.log(`⚡ Connection found! Stopping scan early.`);
+                console.log(`📊 Stats: Parsed ${parsedCount}/${samplesToCheck.length}, Spam filtered: ${spamFiltered}\n`);
+                return connections;
+              }
+            }
+          }
         }
         
         const accountKeys = tx.transaction.message.accountKeys;
@@ -492,7 +552,11 @@ async function detectCrossWalletTransfers(
         // Check EVERY account in the transaction
         for (let i = 0; i < accountKeys.length; i++) {
           const address = accountKeys[i].pubkey.toString();
-          const balanceChange = (postBalances[i] - preBalances[i]) / 1e9;
+          
+          // ✅ Handle undefined balances (new accounts in CREATE ACCOUNT TXs)
+          const preBalance = preBalances[i] ?? 0;
+          const postBalance = postBalances[i] ?? 0;
+          const balanceChange = (postBalance - preBalance) / 1e9;
           
           if (isTestTx) {
             const inBundle = bundleAddresses.has(address);
@@ -545,8 +609,8 @@ async function detectCrossWalletTransfers(
             console.log(`⚡ Connection found! Stopping scan early.`);
             console.log(`📊 Stats: Parsed ${parsedCount}/${samplesToCheck.length}, Spam filtered: ${spamFiltered}\n`);
             return connections;
-          } else if (Math.abs(balanceChange) > 0.001 && Math.abs(balanceChange) < MIN_SOL_AMOUNT) {
-            // Track tiny amounts as spam
+          } else if (Math.abs(balanceChange) > 0 && Math.abs(balanceChange) < MIN_SOL_AMOUNT) {
+            // Track micro-transfers below threshold as spam
             spamFiltered++;
           }
         }
