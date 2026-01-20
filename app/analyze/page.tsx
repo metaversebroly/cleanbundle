@@ -19,6 +19,7 @@ import { StatsCard } from '@/components/wallet/StatsCard'
 import { WalletTableRow } from '@/components/wallet/WalletTableRow'
 import { ExpandedWalletDetails } from '@/components/wallet/ExpandedWalletDetails'
 import { InsightsCard } from '@/components/wallet/InsightsCard'
+import { CriticalIssuesBox } from '@/components/wallet/CriticalIssuesBox'
 import { BubbleMap } from '@/components/wallet/BubbleMap'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { Navigation } from '@/components/layout/Navigation'
@@ -348,6 +349,14 @@ export default function AnalyzePage() {
               {/* Overall Insights Card */}
               {!analyzing && <InsightsCard wallets={wallets} onConnectionsDetected={handleConnectionsDetected} />}
 
+              {/* Critical Issues Box */}
+              {!analyzing && wallets.length > 0 && (
+                <CriticalIssuesBox 
+                  wallets={wallets}
+                  connections={patternConnections}
+                />
+              )}
+
               {/* Action Buttons */}
               <GlassCard className="p-6">
                 <div className="flex flex-wrap justify-between items-center gap-4">
@@ -475,7 +484,7 @@ export default function AnalyzePage() {
 
               {/* Bubble Map Visualization */}
               {!analyzing && wallets.length > 0 && (
-                <GlassCard className="p-6">
+                <GlassCard className="p-6 bubble-map-container">
                   <div className="mb-4">
                     <h2 className="text-2xl font-semibold text-white mb-2">
                       🎨 Bundle Visualization
